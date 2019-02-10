@@ -1,0 +1,418 @@
+#include <bits/stdc++.h>
+#define pb push_back
+using namespace std;
+
+typedef double(*TFunction)(double);
+typedef double(*TFunctionP)(double, int);
+const double EPS = 1e-8;
+const long double MXX = 9e9;
+
+/// границы
+double a = 1.0;
+double b = 2.0;
+
+double h, k, s, s1, s2, R;
+
+///ошибки и оценка
+double err1, err2, err_oc;
+
+///соответствующие суммы
+double s21, s22, s23;
+
+/// максимальная из 2-х производных, 4-х производных, предыдущий интеграл, второй предыдущий
+double max_snd_pr, max_frth_pr, s_prev, s_prev_prev;
+int n, kobr;
+double li1 = MXX, li2 = MXX, odd;
+
+/// обнуление
+void nulling()
+{
+    a = 1.0;
+    b = 2.0;
+    kobr = 0;
+    s = s1 = s2 = s_prev = s_prev_prev = max_snd_pr = max_frth_pr = k = s21 = s22 = s23 = 0;
+    err1 = err_oc = err2 = MXX;
+
+}
+
+/// функция из примера
+double f_25(double x)
+{
+    return (pow(3, x) + 2 - x);
+}
+
+/// производные k-го порядка функции из примера
+double fp_25(double x, int k)
+{
+    if (k == 0)
+        return (pow(3, x) + 2 - x);
+    if (k == 1)
+        return (pow(3, x) * log(3) - 1);
+    if (k > 1)
+        return (pow(3, x) * pow(log(3), k));
+}
+
+/// подсчет функции 12-го варианта
+double f_12(double x)
+{
+    return (pow(3, x) + 3 * pow(x, 3) + 2);
+}
+
+/// производные k-го порядка функции из 12 варианта
+double fp_12(double x, int k)
+{
+    if (k == 0)
+        return (pow(3, x) + 3 * pow(x, 3) + 2);
+    if (k == 1)
+        return (pow(3, x) * log(3) + 9 * pow(x, 2));
+    if (k == 2)
+        return (pow(3, x) * pow(log(3),2) + 18 * x);
+    if (k == 3)
+        return (pow(3, x) * pow(log(3),3) + 18);
+    if (k > 3)
+        return (pow(3, x) * pow(log(3), k));
+}
+
+/// подсчет функции 14-го варианта
+double f_14(double x)
+{
+    return (2 * exp(x) - 3 * x + 1);
+}
+
+/// производные k-го порядка функции из 12 варианта
+double fp_14(double x, int k)
+{
+    if (k == 0)
+        return (2 * exp(x) - 3 * x + 1);
+    if (k == 1)
+        return (2 * exp(x) - 3);
+    if (k > 1)
+        return (2 * exp(x));
+}
+
+void print()
+{
+    cout << "N     |h          |Integral          |Оценка погрешности      |k       " << endl;
+}
+
+///  операции для метода трапеций
+void fun1()
+{
+    s_prev_prev = s_prev;
+    s_prev = s;
+    s = h * (s1 / 2 + s2);
+    k = log2((s_prev - s_prev_prev) / (s - s_prev));
+    if (n != 1)
+        err_oc = 1. / 3 * (s - s_prev);
+    else
+        err_oc = MXX;
+ 
+}
+
+/// операции для метода трапеций модиф.
+void fun2()
+{
+    s22 = s22 / 4;
+    s_prev_prev = s_prev;
+    s_prev = s;
+    s = s21 + s22;
+    k = log2((s_prev - s_prev_prev) / (s - s_prev));
+    err_oc = 1. / 3 * (s - s_prev);
+}
+
+/// операции для метода Симпсона
+void fun3()
+{
+    s_prev_prev = s_prev;
+    s_prev = s;
+    s = h / 6 * (s21 + 4 * s22 + 2 * s23);
+    k = log2((s_prev - s_prev_prev) / (s - s_prev));
+    if (n != 2)
+        err_oc = 1. / 15 * (s - s_prev);
+    else err_oc = MXX;
+}
+
+/// печать на каждой итерации метод трапеций
+void print_results1()
+{
+    if (n == 1)
+        cout << setw(6) << fixed << left << setprecision(0) << n << "| " << setw(6) << setprecision(8) << h << "| " << setw(7) << setprecision(15) << s << endl;
+    else
+        if (n == 2)
+            cout << setw(6) << fixed <<left<< setprecision(0) << n << "| " << setw(6) << setprecision(8) << h << "| " << setw(7) << setprecision(15) << s << "| " << setw(15) << setprecision(15) << err_oc << "| " << endl;
+        else
+            cout << setw(6) << fixed <<left<< setprecision(0) << n  << "| " << setw(6) << setprecision(8) << h << "| " << setw(7) << setprecision(15) << s << "| " << setw(15) << setprecision(15) << scientific << err_oc << "| " << fixed << setw(11) << setprecision(4) << k << endl;
+}
+
+/// печать на каждой итерации мод. метод Трапеций
+void print_results2()
+{
+    if (n > 2)
+        cout << setw(6) << fixed << left << setprecision(0) << n << "| " << setw(6) << setprecision(8) << h << "| " << setw(7) << setprecision(15) << s << "| " << setw(15) << scientific << err_oc << "| " << fixed << setw(8) << setprecision(4) << k << endl;
+    else
+        cout << setw(6) << fixed << left << setprecision(0) << n << "| " << setw(6) << setprecision(8) << h << "| " << setw(7) << setprecision(15) << s << "| " << setw(15)<< setprecision(15) << 2 * err_oc << endl;
+
+}
+
+/// печать на каждой итерации метод Симпсона
+void print_results3()
+{
+    if(n/2 == 1)
+        cout << setw(6) << fixed << left << setprecision(0) << n / 2 << "| " << setw(6) << setprecision(8) << h << "| " << setw(7) << setprecision(15) << s << "| " << endl;
+    else
+        if(n/2 == 2)
+            cout << setw(6) << fixed << left << setprecision(0) << n / 2 << "| " << setw(6) << setprecision(8) << h << "| " << setw(7) << setprecision(15) << s << "| " << setw(15) << setprecision(15) << scientific << err_oc << "| " << endl;
+        else
+            cout << setw(6) << fixed << left << setprecision(0) << n / 2 << "| " << setw(6) << setprecision(8) << h << "| " << setw(7) << setprecision(15) << s << "| " << setw(15) << setprecision(15) << scientific << err_oc << "| " << fixed << setw(11) << setprecision(4) << k << endl;
+
+}
+
+/// печать на каждой итерации метод Гаусса
+void print_results4()
+{
+    if (n == 1)
+        cout << setw(6) << fixed << left << setprecision(0) << n << "| " << setw(6) << setprecision(8) << h << "| " << setw(7) << setprecision(15) << s << "| " << endl;
+    else
+        if (n == 2)
+            cout << setw(6) << fixed << left << setprecision(0) << n << "| " << setw(6) << setprecision(8) << h << "| " << setw(7) << setprecision(15) << s << "| " << setw(15) << setprecision(15) << scientific << R << "| " << endl;
+        else
+            cout << setw(6) << fixed << left << setprecision(0) << n << "| " << setw(6) << setprecision(8) << h << "| " << setw(7) << setprecision(15) << s << "| " << setw(15) << setprecision(15) << scientific << R << "| " << fixed << setw(11) << setprecision(4) << k << endl;
+
+}
+
+/// метод трапеций
+void trapezoidMethod(TFunction f, TFunctionP fp)
+{
+    cout << "Trapezoid Method №1: " << endl;
+    n = 1; h = 1;
+
+    /// задаем переменным начальные значения, печатаем шапку
+    nulling(); print();
+
+
+    /// сумма значений функции в граничных точках записываем в s1
+    s1 = f(a) + f(b);
+    kobr++;
+    kobr++;
+
+    /// находим максимальную из вторых производных для функции в граничных точках
+    max_snd_pr = max(fabs(fp(a, 2)),fabs(fp(b, 2)));
+
+    /// запускаем основной цикл до момента, пока ошибка не станет <= EPS
+    for (n = 1; fabs(err1) > EPS; n = n * 2, h = h / 2)
+    {
+        s2 = 0;
+
+        /// рассчитываем ошибку
+        err1 = pow(h, 2) / 12 * max_snd_pr;
+        //print_results1();
+        /// считаем суммы и пересчитываем максимальное значение 2-й производой
+        for (int i = 1; i <= n - 1; i++)
+        {
+            kobr++;
+            s2 += f(a + h * i);
+            max_snd_pr = max(max_snd_pr, fabs(fp(a + h * i , 2)));
+        }
+
+        /// окончательные рассчеты и печать
+
+        fun1();
+
+        print_results1();
+    }
+    /// вывод результата
+    cout << setprecision(15) << "After considering the integral is:  " << s << endl;
+	cout << "kobr: " << kobr << endl << endl;
+
+}
+
+/// модицифцированный метод трапеций
+void trapezoidMethod_mod(TFunction f, TFunctionP fp)
+{
+    cout << "Trapezoid Method №2: " << endl;
+    /// задаем начальные условия, печатаем шапку
+    n = 1; h = 1;
+    nulling(); print();
+
+    /// суммы
+    s21 = h / 2 * (f(a) + f(b));
+    kobr++;
+    kobr++;
+
+    s22 = h * h / 12 * (fp(a, 1) - fp(b, 1));
+    s = s21 + s22;
+
+    /// считаем k
+    k = log2((s_prev - s_prev_prev) / (s - s_prev));
+
+    /// находим максимальную из четвертых производных на границах
+    max_frth_pr = max(fabs(fp(a, 4)),fabs(fp(b, 4)));
+
+    /// считаем ошибку
+    err2 = pow(h, 5) * max_frth_pr / 384;
+    s_prev = s;
+
+    /// запускаем основной цикл
+    while (err_oc > EPS)
+    {
+        /// выводим результат для n = 1
+        if (n == 1)
+        cout << setw(6) << fixed << left << setprecision(0) << n << "| " << setw(6) << setprecision(8) << h << "| " << setw(7) << setprecision(15) << s << endl;
+
+        h = h / 2; n = n * 2;
+
+        /// считаем ошибку
+        err2 = pow(h, 5) * max_frth_pr / 240;
+        s21 = s21 / 2;
+        for (int i = 1; i * h + a < b; i = i + 2)
+        {
+            kobr++;
+            s21 = s21 + h * f(a + i * h);
+            max_frth_pr = max(max_frth_pr, fabs(fp(a + i * h, 4)));
+        }
+
+        /// расччеты и вывод промежуточнх результатов
+        fun2();
+        print_results2();
+        }
+    /// вывод итогового результата
+    cout << setprecision(15) << "After considering the integral is:  " << s << endl;
+	cout << "kobr: " << kobr << endl << endl;
+}
+
+/// метод Симпсона
+double Simpson(TFunction f, TFunctionP fp)
+{
+    cout << "Simpson's Method: " << endl;
+    n = 1; h = 1;
+    /// присвоение переменным начальных значений и печать шапки
+    nulling(); print();
+
+    /// s1
+    s21 = f(a) + f(b);
+    kobr += 2;
+
+    /// подсчет максимальной из 4х производных на границах
+    max_frth_pr = max(fabs(fp(a, 4)), fabs(fp(b, 4)));
+
+    /// осн. цикл
+    for (n = 2; fabs(err_oc) > EPS; n = n * 2, h = h / 2)
+    {
+        s23 += s22;
+        s22 = 0;
+        /// ошибка
+        err2 = pow(h, 4) * max_frth_pr / 2880;
+        for (int i = 1; i <= n / 2; i++)
+        {
+            kobr++;
+            s22 += f(a + (2 * i - 1) * h / 2);
+            max_frth_pr = max(max_frth_pr,fabs(fp(a + (2 * i - 1) * h, 4)));
+        }
+    /// расчеты
+    fun3();
+
+    /// печать промежуточных результатов
+    print_results3();
+    }
+
+    /// печать итогового результата
+    cout << setprecision(15) << "After considering the integral is:  " << s << endl;
+	cout << "kobr: " << kobr << endl << endl;
+}
+
+/// метод Гаусса
+void Gauss(TFunction f, TFunctionP fp)
+{
+    cout << "Gauss method: " << endl;
+	print();
+    vector<double> v1 = { 1, 2 };
+	n = 1; h = 1; kobr = 0;
+	li1 = li2 = MXX;
+
+    /// основной цикл
+	while (true)
+    {
+		s = 0;
+
+		/// вектора, содержащие x1,x2,x3 и a1,a2,a3 соответственно
+		vector<double> all_x = { -sqrt(3. / 5), 0, sqrt(3. / 5) };
+		vector<double> all_a = { 5. / 9, 8. / 9, 5. / 9 };
+
+        /// ошибка
+		R = 0;
+
+        /// бежим по вектору v1
+		for (size_t i = 0; i + 1 < v1.size(); i++)
+        {
+            /// коэффициент
+			odd = (v1[i + 1] - v1[i]) * 0.5;
+
+			/// считаем интеграл и кол-во обращений к ф-ии
+			for (size_t j = 0; j < all_x.size(); j++)
+            {
+				kobr++;
+                s += odd * all_a[j] * f((v1[i + 1] + v1[i]) * 0.5 +  (v1[i + 1] - v1[i]) * all_x[j] * 0.5);
+			}
+		}
+
+        /// всопм. вектор
+		vector<double> v2;
+		for (size_t i = 0; i < v1.size(); i++)
+        {
+			if (i != 0)
+				v2.pb((v1[i] + v1[i - 1]) / 2);
+			v2.pb(v1[i]);
+		}
+
+        if (li1 == MXX)
+            R = MXX;
+        else R = (s - li1) / (63.);
+		k = log2((li1 - li2) / (s - li1));
+
+
+        /// печать промежуточных результатов
+        print_results4();
+
+		/// проверка условия для цикла
+		if (fabs(R) < EPS)
+			break;
+
+		v1 = v2;
+		h /= 2;
+		n *= 2;
+		li2 = li1;
+		li1 =s;
+	}
+
+    /// печать итогового результата
+	cout << "After considering the integral is:  "  << setprecision(15) << li1 << endl;
+	cout << "kobr: " << kobr << endl << endl;
+}
+
+int main()
+{
+    //freopen("input.txt", "r", stdin);
+    freopen("output.txt", "w", stdout);
+
+    /// метод трапеций
+    //trapezoidMethod(f_25, fp_25);
+    //trapezoidMethod(f_12, fp_12);
+    trapezoidMethod(f_14, fp_14);
+
+
+    /// метод трапеций модиф.
+    //trapezoidMethod_mod(f_25, fp_25);
+    //trapezoidMethod_mod(f_12, fp_12);
+    trapezoidMethod_mod(f_14, fp_14);
+
+    /// метод Симпсона
+    //Simpson(f_25, fp_25);
+    //Simpson(f_12, fp_12);
+    Simpson(f_14, fp_14);
+
+    /// метод Гаусса
+    //Gauss(f_25, fp_25);
+    //Gauss(f_12, fp_12);
+    Gauss(f_14, fp_14);
+    return 0;
+}
